@@ -10,6 +10,9 @@ const profileRoutes = require("./routes/profileRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const purchaseRequestRoutes = require("./routes/purchaseRequestsRoutes");
+const assetTransfersRoutes = require("./routes/assetTransferRoutes");
+const transactionsRoutes = require("./routes/transactionRoutes");
+const notificationsRoutes = require("./routes/notificationsRoutes");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const socketIo = require("socket.io");
@@ -46,7 +49,6 @@ io.on("connection", (socket) => {
     "sendMessage",
     async ({ senderId, recieverId, chatId, content, token }) => {
       try {
-        console.log(socket);
         const res = await axios.post(
           `http://localhost:${PORT}/api/chats/createMessage`,
           {
@@ -79,6 +81,10 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/purchase-requests", purchaseRequestRoutes);
+app.use("/api/asset-transfers", assetTransfersRoutes);
+app.use("/api/transactions", transactionsRoutes);
+app.use("/api/notifications", notificationsRoutes);
 // Сохранение статистики каждый час
 setInterval(saveProductStats, 3600000);
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+module.exports = { io };

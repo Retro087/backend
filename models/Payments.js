@@ -22,17 +22,20 @@ const Payments = sequelize.define("Payment", {
   status: {
     type: DataTypes.ENUM(
       "pending",
-      "waiting_for_capture", //  Ожидает подтверждения
+
       "succeeded",
-      "canceled",
-      "refunded",
-      "declined"
+      "canceled"
     ),
     defaultValue: "pending",
   },
   yookassaPaymentId: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  purchaseRequestId: {
+    // Foreign Key to PurchaseRequest
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
 });
 

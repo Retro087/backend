@@ -7,26 +7,26 @@ const AssetTransfer = sequelize.define("AssetTransfer", {
     primaryKey: true,
     autoIncrement: true,
   },
-  domainTransferStatus: {
-    type: DataTypes.ENUM("pending", "completed", "failed"),
-    defaultValue: "pending",
+  purchaseRequestId: {
+    // Foreign Key to PurchaseRequest
+    type: DataTypes.INTEGER,
+    allowNull: false,
   },
-  websiteTransferStatus: {
-    type: DataTypes.ENUM("pending", "completed", "failed"),
-    defaultValue: "pending",
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
-  socialMediaTransferStatus: {
-    type: DataTypes.ENUM("pending", "completed", "failed"),
-    defaultValue: "pending",
+  transferDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
   },
-  buyerConfirmation: {
-    type: DataTypes.ENUM("pending", "confirmed", "rejected"),
-    defaultValue: "pending",
+  isConfirmedByBuyer: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
-  // You'll need to adapt the code based on how card details will be used (encrypted or via a token):
-  card_number: {
-    type: DataTypes.STRING,
-    allowNull: true,
+  isConfirmedBySeller: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
 });
 

@@ -7,6 +7,8 @@ const {
   updatePurchaseRequestStatus,
   deletePurchaseRequest,
   getAllPurchaseRequests,
+  acceptPurchaseRequest,
+  rejectPurchaseRequest,
 } = require("../controllers/PurchaseRequestController");
 const { isOwnerOrAdmin } = require("../middleware/isOwnerOrAdmin");
 const { authenticateToken } = require("../middleware/authMiddleware");
@@ -21,11 +23,9 @@ router.get("/", authenticateToken, getAllPurchaseRequests);
 router.delete("/:id", authenticateToken, deletePurchaseRequest);
 
 //Обновление статуса запроса на покупку (требует аутентификации и роли администратора)
-router.patch(
-  "/:id/status",
-  authenticateToken,
+router.put("/:id/accept", authenticateToken, acceptPurchaseRequest);
 
-  updatePurchaseRequestStatus
-);
+//  Отклонение запроса на покупку продавцом (только для продавцов)
+router.put("/:id/reject", authenticateToken, rejectPurchaseRequest);
 
 module.exports = router;
