@@ -2,10 +2,12 @@ const { Sequelize } = require("sequelize");
 const PurchaseRequests = require("../models/PurchaseRequests");
 const Products = require("../models/Products");
 const Notifications = require("../models/Notifications");
-const { io } = require("../server");
+
+//  Импортируем функцию, возвращающую экземпляр io
 
 exports.createPurchaseRequest = async (req, res) => {
   try {
+    const io = req.io;
     const buyerId = req.user.id;
     const { businessId, amount } = req.body;
 
@@ -55,6 +57,7 @@ exports.createPurchaseRequest = async (req, res) => {
 
 exports.deletePurchaseRequest = async (req, res) => {
   const { id } = req.params;
+  const io = req.io;
   try {
     // 1. Находим запрос на покупку по ID
     const purchaseRequest = await PurchaseRequests.findOne({
@@ -97,6 +100,7 @@ exports.deletePurchaseRequest = async (req, res) => {
 
 exports.acceptPurchaseRequest = async (req, res) => {
   try {
+    const io = req.io;
     const { id } = req.params;
     const sellerId = req.user.id;
 
@@ -144,6 +148,7 @@ exports.acceptPurchaseRequest = async (req, res) => {
 
 exports.rejectPurchaseRequest = async (req, res) => {
   try {
+    const io = req.io;
     const { id } = req.params;
     const sellerId = req.user.id;
 
@@ -176,7 +181,17 @@ exports.rejectPurchaseRequest = async (req, res) => {
     });
 
     if (io && io.to) {
-      io.to(purchaseRequest.buyerId).emit("new_notification", notification);
+      io.to(String(purchaseRequest.buyerId)).emit(
+        "new_notification",
+        notification
+      ); //  Отправляем уведомление только buyerId
+      console.log(
+        `Отправлено уведомление пользователю ${purchaseRequest.buyerId}`
+      );
+    } else {
+      console.warn(
+        "Не удалось отправить уведомление: io, io.to или buyerId отсутствуют."
+      );
     }
 
     res
@@ -191,17 +206,25 @@ exports.rejectPurchaseRequest = async (req, res) => {
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
     const userId = req.user.id; // Получаем ID пользователя из middleware аутентификации
+    const { type } = req.query; // Получаем тип запроса из query parameters (например, ?type=incoming или ?type=outgoing)
 
-    // Находим продукты, которые принадлежат этому продавцу
+    let whereClause = {
+      [Sequelize.Op.or]: [
+        { buyerId: userId }, // Запросы, созданные этим пользователем (покупателем)
+        { sellerId: userId }, // Запросы, относящиеся к продуктам этого продавца
+      ],
+    };
 
-    // Получаем запросы на покупку только для продуктов этого продавца
+    // Фильтруем запросы в зависимости от типа
+    if (type === "incoming") {
+      whereClause = { sellerId: userId }; // Только входящие запросы (для этого продавца)
+    } else if (type === "outgoing") {
+      whereClause = { buyerId: userId }; // Только исходящие запросы (от этого покупателя)
+    }
+
     const purchaseRequests = await PurchaseRequests.findAll({
-      where: {
-        [Sequelize.Op.or]: [
-          { buyerId: userId }, // Запросы, созданные этим пользователем (покупателем)
-          { sellerId: userId }, // Запросы, относящиеся к продуктам этого продавца
-        ],
-      },
+      where: whereClause,
+      // Можно добавить include для модели Products, User (покупателя, продавца)
     });
 
     res.json(purchaseRequests);
@@ -209,6 +232,41 @@ exports.getAllPurchaseRequests = async (req, res) => {
     console.error("Ошибка при получении списка запросов на покупку:", error);
     res.status(500).json({
       message: "Ошибка при получении списка запросов на покупку.",
+      error: error.message,
+    });
+  }
+};
+exports.getPurchaseRequest = async (req, res) => {
+  try {
+    const userId = req.user.id; // Получаем ID пользователя из middleware аутентификации
+    const { productId } = req.params;
+
+    // Проверяем, существует ли продукт с заданным productId, чтобы избежать ошибок
+    const product = await Products.findByPk(productId); //  Предполагается, что у вас есть модель Products
+    if (!product) {
+      return res.status(404).json({ message: "Продукт не найден" });
+    }
+
+    // Получаем запросы на покупку, используя оператор AND для сужения поиска
+    const purchaseRequests = await PurchaseRequests.findOne({
+      where: {
+        [Sequelize.Op.and]: [
+          { businessId: productId }, //  Фильтруем по productId
+          {
+            [Sequelize.Op.or]: [
+              { buyerId: userId }, // Запросы, созданные этим пользователем (покупателем)
+              // Запросы, относящиеся к продуктам этого продавца (продавец)
+            ],
+          },
+        ],
+      },
+    });
+
+    res.json(purchaseRequests);
+  } catch (error) {
+    console.error("Ошибка при получении запроса на покупку:", error);
+    res.status(500).json({
+      message: "Ошибка при получении запроса на покупку.",
       error: error.message,
     });
   }

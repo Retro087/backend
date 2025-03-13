@@ -207,7 +207,7 @@ exports.adminCreateUser = async (req, res) => {
 
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Products.findAll();
+    const products = await Products.findAll({ where: { status: "published" } });
     res.json(products);
   } catch (error) {
     console.error(error);

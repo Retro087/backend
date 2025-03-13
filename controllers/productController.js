@@ -69,7 +69,7 @@ exports.deleteProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
   let { category, userId, min, max, query } = req.query;
-  console.log(req.query);
+
   try {
     const whereClause = {};
     whereClause.status = "published";
@@ -80,8 +80,8 @@ exports.getProducts = async (req, res) => {
     if (query) {
       whereClause.query = {
         [Op.or]: [
-          { name: { [Op.iLike]: searchTerm } },
-          { description: { [Op.iLike]: searchTerm } },
+          { name: { [Op.iLike]: query } },
+          { description: { [Op.iLike]: query } },
         ],
       };
     }

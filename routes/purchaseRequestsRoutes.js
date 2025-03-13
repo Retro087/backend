@@ -9,6 +9,7 @@ const {
   getAllPurchaseRequests,
   acceptPurchaseRequest,
   rejectPurchaseRequest,
+  getPurchaseRequest,
 } = require("../controllers/PurchaseRequestController");
 const { isOwnerOrAdmin } = require("../middleware/isOwnerOrAdmin");
 const { authenticateToken } = require("../middleware/authMiddleware");
@@ -18,6 +19,7 @@ router.post("/", authenticateToken, createPurchaseRequest);
 
 // Получение всех запросов на покупку (требует аутентификации и роли администратора)
 router.get("/", authenticateToken, getAllPurchaseRequests);
+router.get("/:productId", authenticateToken, getPurchaseRequest);
 
 // Удаление запроса на покупку (требует аутентификации и роли администратора)
 router.delete("/:id", authenticateToken, deletePurchaseRequest);

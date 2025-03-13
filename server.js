@@ -45,6 +45,12 @@ const PORT = process.env.PORT || 5000;
 
 io.on("connection", (socket) => {
   console.log("New client connected!");
+  const userId = socket.handshake.query.userId; // Получаем userId
+
+  if (userId) {
+    console.log(`User ${userId} connected`);
+    socket.join(userId); // Добавляем сокет в "комнату" userId
+  }
   socket.on(
     "sendMessage",
     async ({ senderId, recieverId, chatId, content, token }) => {
@@ -67,6 +73,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Client disconnected");
   });
+});
+app.use((req, res, next) => {
+  req.io = io; // Добавляем io в объект request
+  next();
 });
 
 connectDB();
