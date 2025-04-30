@@ -3,10 +3,10 @@ const Notifications = require("../models/Notifications");
 const Products = require("../models/Products");
 const PurchaseRequests = require("../models/PurchaseRequests");
 const Transaction = require("../models/Transactions");
-const { io } = require("../server");
 
 exports.createAssetTransfer = async (req, res) => {
   try {
+    const io = req.io;
     const sellerId = req.user.id;
     const { purchaseRequestId, description } = req.body;
 
@@ -66,6 +66,7 @@ exports.createAssetTransfer = async (req, res) => {
 
 exports.confirmAssetTransferBuyer = async (req, res) => {
   try {
+    const io = req.io;
     const buyerId = req.user.id;
     const { id } = req.params; // ID AssetTransfer
 
@@ -131,6 +132,7 @@ exports.confirmAssetTransferBuyer = async (req, res) => {
 
 exports.confirmAssetTransferSeller = async (req, res) => {
   try {
+    const io = req.io;
     const sellerId = req.user.id;
     const { id } = req.params; // ID AssetTransfer
 

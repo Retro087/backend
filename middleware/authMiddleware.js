@@ -21,7 +21,7 @@ exports.authenticateToken = async (req, res, next) => {
     next();
   } catch (err) {
     console.error("Ошибка при аутентификации:", err);
-    return res.status(403).json({ message: "Недействительный токен." });
+    return res.status(401).json({ message: "Недействительный токен." });
   }
 };
 exports.authorizeRole = (role) => {

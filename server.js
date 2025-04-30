@@ -20,6 +20,7 @@ const http = require("http");
 const { default: axios } = require("axios");
 const { saveProductStats } = require("./controllers/productController");
 const path = require("path");
+const Messages = require("./models/Messages");
 dotenv.config();
 
 const syncDatabase = async () => {
@@ -45,12 +46,8 @@ const PORT = process.env.PORT || 5000;
 
 io.on("connection", (socket) => {
   console.log("New client connected!");
-  const userId = socket.handshake.query.userId; // Получаем userId
+  // Получаем userId
 
-  if (userId) {
-    console.log(`User ${userId} connected`);
-    socket.join(userId); // Добавляем сокет в "комнату" userId
-  }
   socket.on(
     "sendMessage",
     async ({ senderId, recieverId, chatId, content, token }) => {
@@ -64,14 +61,48 @@ io.on("connection", (socket) => {
             content,
           }
         );
-        io.emit("newMessage", res.data);
+        io.to(chatId).emit("newMessage", res.data);
       } catch (err) {
         console.log(err);
+        socket.emit("messageError", {
+          message: "Failed to send message",
+          error: err.message,
+        });
       }
     }
   );
+  socket.on("mark_as_read", async (data) => {
+    try {
+      const { messageId, userId, chatId } = data;
+
+      //  Обновляем поле readAt в базе данных
+      await Messages.update(
+        { isRead: true },
+        {
+          where: {
+            id: messageId,
+            recieverId: userId, //  Только для получателя
+            chatId: chatId,
+            isRead: false, //  Убедимся, что сообщение еще не прочитано
+          },
+        }
+      );
+
+      //  Отправляем событие об изменении статуса прочтения в комнату
+      io.to(chatId).emit("message_read", { messageId, userId, chatId }); // Отправляем userId для проверки
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      socket.emit("readError", {
+        message: "Failed to mark message as read",
+        error: error.message,
+      });
+    }
+  });
   socket.on("disconnect", () => {
     console.log("Client disconnected");
+  });
+  socket.on("join_room", async (data) => {
+    socket.join(data.id);
   });
 });
 app.use((req, res, next) => {
@@ -82,6 +113,7 @@ app.use((req, res, next) => {
 connectDB();
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoriesRoutes);

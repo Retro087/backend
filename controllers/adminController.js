@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const Users = require("../models/Users");
 const { Sequelize } = require("sequelize");
 const Products = require("../models/Products");
+const Payments = require("../models/Payments");
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -259,5 +260,18 @@ exports.adminDeleteProduct = async (req, res) => {
       message: "Ошибка при удалении продукта",
       error: error.message,
     });
+  }
+};
+
+exports.getPayments = async (req, res) => {
+  try {
+    const allPayments = await Payments.findAll();
+
+    if (!allPayments.length) {
+      return res.status(404).json({ message: "Нет выплат" });
+    }
+    res.json(allPayments);
+  } catch (error) {
+    console.error(error);
   }
 };

@@ -9,7 +9,7 @@ const Users = require("../models/Users");
 const PurchaseRequests = require("../models/PurchaseRequests");
 const Notifications = require("../models/Notifications");
 const crypto = require("crypto");
-const { io } = require("../server");
+
 const shopId = process.env.YOOKASSA_SHOP_ID;
 const secretKey = process.env.YOOKASSA_SECRET_KEY;
 
@@ -261,6 +261,7 @@ function verifyYookassaSignature(signature, body, secretKey) {
     }
   }),
   (exports.yookassaWebhook = async (req, res) => {
+    const io = req.io;
     try {
       /*
       const ipAddress = req.ip || req.connection.remoteAddress; // req.ip работает за прокси

@@ -6,6 +6,7 @@ const {
   updateProfile,
   getProfile,
   updatePhoto,
+  updatePicture,
 } = require("../controllers/profileController");
 const upload = require("../middleware/upload");
 
@@ -14,5 +15,5 @@ router.use(authenticateToken);
 router.patch("/", updateProfile);
 
 router.get("/", getProfile);
-
+router.post("/:id/photo", upload.single("updatePicture"), updatePicture);
 module.exports = router;

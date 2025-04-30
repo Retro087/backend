@@ -3,6 +3,8 @@ const Product = require("../models/Products");
 const { Op } = require("sequelize");
 const ProductStats = require("../models/ProductStats");
 
+const Favorites = require("../models/Favorites");
+
 exports.createProduct = async (req, res) => {
   const url = req.body.url;
   const userId = req.user.id;
@@ -11,19 +13,6 @@ exports.createProduct = async (req, res) => {
     const newProduct = await Product.create({
       user_id: userId,
       url: url,
-      name: null,
-      description: null,
-      short: null,
-      price: null,
-
-      photo: null,
-      category: null,
-      city: null,
-      age: null,
-      profit: null,
-      margin: null,
-      views: null,
-      subs: null,
       status: "draft",
     });
     res.status(201).json(newProduct);
@@ -33,23 +22,52 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+function isProductValid(data) {
+  // Определите здесь, какие поля являются обязательными
+  const requiredFields = ["name", "description", "price", "category", "short"]; //  Пример
+
+  for (const field of requiredFields) {
+    if (!data[field]) {
+      return false; // Если хотя бы одно поле не заполнено, возвращаем false
+    }
+    if (typeof data[field] === "string" && data[field].trim() === "") {
+      // Проверка на пустую строку
+      return false;
+    }
+  }
+  return true; // Если все поля заполнены, возвращаем true
+}
+
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const { data, status } = req.body; // получаем data и status
   console.log(id, data);
+
   try {
+    // Проверяем, заполнены ли все необходимые данные
+    const isValid = isProductValid(data);
+
+    let newStatus;
+
+    if (isValid) {
+      newStatus = "published"; // Если все данные заполнены, публикуем товар
+    } else {
+      newStatus = "draft"; // Если не все данные заполнены, сохраняем как черновик
+    }
+
     const updatedProduct = await Product.update(
-      { ...data, status }, // обновляем data и status
+      { ...data, status: newStatus }, // Обновляем данные и статус
       { where: { id } }
     );
 
-    if (!updatedProduct[0])
+    if (!updatedProduct[0]) {
       return res.status(404).json({ message: "Product not found" });
+    }
 
     const product = await Product.findOne({ where: { id } });
-
     res.json(product); // возвращаем product для redux
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -68,8 +86,10 @@ exports.deleteProduct = async (req, res) => {
 };
 
 exports.getProducts = async (req, res) => {
-  let { category, userId, min, max, query } = req.query;
-
+  let { category, userId, min, max, query, page = 1, limit = 10 } = req.query;
+  console.log(req.query);
+  page = Number(page);
+  limit = Number(limit);
   try {
     const whereClause = {};
     whereClause.status = "published";
@@ -80,8 +100,8 @@ exports.getProducts = async (req, res) => {
     if (query) {
       whereClause.query = {
         [Op.or]: [
-          { name: { [Op.iLike]: query } },
-          { description: { [Op.iLike]: query } },
+          { name: { [Op.iLike]: searchTerm } },
+          { description: { [Op.iLike]: searchTerm } },
         ],
       };
     }
@@ -92,9 +112,13 @@ exports.getProducts = async (req, res) => {
     if (Number(max)) {
       whereClause.price = { ...whereClause.price, [Op.lte]: Number(max) }; // Максимальная цена
     }
+    let totalProducts = await Product.count({ where: whereClause });
 
+    // Получаем продукты с пагинацией
     let products = await Product.findAll({
       where: whereClause,
+      limit: limit, // Количество элементов на странице
+      offset: (page - 1) * limit, // Сдвиг для пагинации
     });
 
     if (userId !== "null") {
@@ -105,15 +129,16 @@ exports.getProducts = async (req, res) => {
         ...product.dataValues,
         isFavorite: favoriteIds.includes(product.id),
       }));
-      return res.json(products);
     }
 
-    if (category == "all") {
-      return res.json(products);
-    }
-
-    return res.json(products);
+    return res.json({
+      products,
+      totalProducts,
+      currentPage: page,
+      totalPages: Math.ceil(totalProducts / limit),
+    });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -256,7 +281,7 @@ exports.saveProductStats = async () => {
 
 exports.getMyProducts = async (req, res) => {
   const id = req.user.id;
-
+  console.log(id);
   try {
     // Проверка прав доступа (проверяем, что продавец является владельцем товара)
     const products = await Product.findAll({

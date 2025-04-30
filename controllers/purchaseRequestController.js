@@ -181,10 +181,7 @@ exports.rejectPurchaseRequest = async (req, res) => {
     });
 
     if (io && io.to) {
-      io.to(String(purchaseRequest.buyerId)).emit(
-        "new_notification",
-        notification
-      ); //  Отправляем уведомление только buyerId
+      io.to(purchaseRequest.buyerId).emit("new_notification", notification); //  Отправляем уведомление только buyerId
       console.log(
         `Отправлено уведомление пользователю ${purchaseRequest.buyerId}`
       );

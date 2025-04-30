@@ -13,6 +13,7 @@ const {
   getAllProducts,
   adminUpdateProduct,
   adminDeleteProduct,
+  getPayments,
 } = require("../controllers/adminController");
 
 // Защита всех маршрутов товаров
@@ -24,18 +25,21 @@ router.patch(
   authorizeRole("admin"),
   adminUpdateProfile
 );
+
 router.delete(
   "/users/:id",
   authenticateToken,
   authorizeRole("admin"),
   adminDeleteProfile
 );
+
 router.post(
   "/users",
   authenticateToken,
   authorizeRole("admin"),
   adminCreateUser
 );
+
 router.get(
   "/products",
   authenticateToken,
@@ -58,5 +62,7 @@ router.delete(
   authorizeRole("admin"),
   adminDeleteProduct
 );
+
+router.get("/payments", authenticateToken, authorizeRole("admin"), getPayments);
 
 module.exports = router;

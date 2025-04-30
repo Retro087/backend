@@ -1,6 +1,30 @@
 const User = require("../models/Users");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const RefreshTokens = require("../models/RefreshTokens");
+const crypto = require("crypto");
+const generateRefreshToken = () => {
+  return crypto.randomBytes(64).toString("hex"); // Generate a random refresh token
+};
+
+const generateAccessToken = (user) => {
+  return jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+    expiresIn: "1h", // Короткий срок действия
+  });
+};
+
+const createAndSaveRefreshToken = async (userId) => {
+  const refreshToken = generateRefreshToken();
+  const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+  await RefreshTokens.create({
+    token: hashedRefreshToken,
+    userId: userId,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+
+  return refreshToken; // Return the *unhashed* refresh token
+};
 
 exports.register = async (req, res) => {
   const { username, email, password } = req.body;
@@ -15,14 +39,14 @@ exports.register = async (req, res) => {
       city: "",
       phone: "",
     });
-    const token = jwt.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = generateAccessToken(newUser);
+    const refreshToken = await createAndSaveRefreshToken(newUser.id);
 
     res.status(201).json({
       message: "User registered successfully",
       user: newUser,
       token,
+      refreshToken: refreshToken,
       result: 0,
     });
   } catch (error) {
@@ -40,11 +64,10 @@ exports.login = async (req, res) => {
         .status(401)
         .json({ message: "Invalid credentials", result: 1 });
     }
+    const token = generateAccessToken(user);
+    const refreshToken = await createAndSaveRefreshToken(user.id);
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-    res.json({ token, user, result: 0 });
+    res.json({ token, user, result: 0, refreshToken: refreshToken });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -78,5 +101,51 @@ exports.authMe = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh token is required" });
+  }
+
+  try {
+    // Find the refresh token record by *user_id*
+    const refreshTokenRecord = await RefreshTokens.findOne({
+      where: { userId: req.user.userId },
+      order: [["createdAt", "DESC"]],
+    });
+
+    if (!refreshTokenRecord) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    // Compare the *hashed* token from the database with the hash of the received token
+    const isTokenValid = await bcrypt.compare(
+      refreshToken,
+      refreshTokenRecord.token
+    );
+
+    if (!isTokenValid) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const accessToken = generateAccessToken(refreshTokenRecord.user);
+    const newRefreshToken = generateRefreshToken();
+    const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+
+    // Update the refresh token in the database
+    refreshTokenRecord.token = hashedNewRefreshToken;
+    refreshTokenRecord.expiresAt = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000
+    );
+    await refreshTokenRecord.save();
+
+    res.json({ accessToken, refreshToken: newRefreshToken }); // Send new unhashed token
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Failed to refresh token" });
   }
 };

@@ -42,15 +42,17 @@ exports.getChats = async (req, res) => {
           photo: otherUser.photo,
           username: otherUser.username,
           lastMessage: lastMessage ? lastMessage.content : "",
-          createdAt: lastMessage ? lastMessage.createdAt : null,
-          unreadCount: unreadCount, // Добавляем количество непрочитанных сообщений
+          unreadCount: unreadCount,
+          recieverId: otherUser.id,
+          lastMessageDate: lastMessage ? lastMessage.createdAt : "",
+          isRead: lastMessage?.senderId === userId ? lastMessage.isRead : null, // Добавляем количество непрочитанных сообщений
         };
       })
     );
 
     // Отфильтровываем null значения, если такие есть
     const filteredChats = formattedChats.filter((chat) => chat !== null);
-
+    console.log(filteredChats);
     res.json(filteredChats);
   } catch (error) {
     console.error(error);
