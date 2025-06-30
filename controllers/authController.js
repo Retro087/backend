@@ -3,14 +3,19 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const RefreshTokens = require("../models/RefreshTokens");
 const crypto = require("crypto");
+
 const generateRefreshToken = () => {
   return crypto.randomBytes(64).toString("hex"); // Generate a random refresh token
 };
 
 const generateAccessToken = (user) => {
-  return jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-    expiresIn: "1h", // Короткий срок действия
-  });
+  return jwt.sign(
+    { id: user.id, username: user.username, email: user.email },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "1m", // Short expiration time
+    }
+  );
 };
 
 const createAndSaveRefreshToken = async (userId) => {
@@ -20,7 +25,7 @@ const createAndSaveRefreshToken = async (userId) => {
   await RefreshTokens.create({
     token: hashedRefreshToken,
     userId: userId,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Expires in 30 days
   });
 
   return refreshToken; // Return the *unhashed* refresh token
@@ -50,6 +55,7 @@ exports.register = async (req, res) => {
       result: 0,
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ error: error.message, result: 1 });
   }
 };
@@ -69,27 +75,44 @@ exports.login = async (req, res) => {
 
     res.json({ token, user, result: 0, refreshToken: refreshToken });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 exports.logout = async (req, res) => {
-  const { email, password } = req.body;
-  console.log(email, password);
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res
+      .status(400)
+      .json({ message: "Refresh token is required", result: 1 });
+  }
+
   try {
-    const user = await User.findOne({ where: { email } });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res
-        .status(401)
-        .json({ message: "Invalid credentials", result: 1 });
+    // Find and delete the refresh token
+    const refreshTokenRecord = await RefreshTokens.destroy({
+      where: {
+        token: refreshToken, // Again, compare the UNHASHED token
+      },
+    });
+
+    if (refreshTokenRecord === 0) {
+      // No token found/deleted
+      return res.status(200).json({
+        message: "Logout successful (token already invalid)",
+        result: 0,
+      }); // Treat as success, no error.  Token might have been revoked before.
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-    res.json({ token, user, result: 0 });
+    res.status(200).json({ message: "Logged out successfully", result: 0 });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Logout error:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+      result: 1,
+    });
   }
 };
 
@@ -105,47 +128,51 @@ exports.authMe = async (req, res) => {
 };
 
 exports.refreshToken = async (req, res) => {
-  const { refreshToken } = req.body;
-
+  const { refreshToken } = req.body; // Assuming refresh token is sent in the request body
+  console.log(refreshToken);
   if (!refreshToken) {
-    return res.status(401).json({ message: "Refresh token is required" });
+    return res
+      .status(400)
+      .json({ message: "Refresh token is required", result: 1 });
   }
 
   try {
-    // Find the refresh token record by *user_id*
+    // 1. Find the hashed refresh token in the database
     const refreshTokenRecord = await RefreshTokens.findOne({
-      where: { userId: req.user.userId },
-      order: [["createdAt", "DESC"]],
+      where: {
+        token: refreshToken, // IMPORTANT:  Here, compare the UNHASHED token because you save the hashed one
+      },
     });
 
     if (!refreshTokenRecord) {
-      return res.status(401).json({ message: "Invalid refresh token" });
+      return res
+        .status(403)
+        .json({ message: "Invalid refresh token", result: 1 }); // Or 401
     }
 
-    // Compare the *hashed* token from the database with the hash of the received token
-    const isTokenValid = await bcrypt.compare(
-      refreshToken,
-      refreshTokenRecord.token
-    );
-
-    if (!isTokenValid) {
-      return res.status(401).json({ message: "Invalid refresh token" });
+    // 2. Validate that the refresh token has not expired
+    if (refreshTokenRecord.expiresAt < new Date()) {
+      // Invalidate the refresh token (optional, but recommended)
+      await refreshTokenRecord.destroy(); // Delete expired refresh token from the database
+      return res
+        .status(403)
+        .json({ message: "Refresh token has expired", result: 1 });
     }
 
-    const accessToken = generateAccessToken(refreshTokenRecord.user);
-    const newRefreshToken = generateRefreshToken();
-    const hashedNewRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+    const userId = refreshTokenRecord.userId; // Extract the user ID from the refresh token record
 
-    // Update the refresh token in the database
-    refreshTokenRecord.token = hashedNewRefreshToken;
-    refreshTokenRecord.expiresAt = new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000
-    );
-    await refreshTokenRecord.save();
+    // 3. Create a new access token
+    const newAccessToken = generateAccessToken(userId);
+    const newRefreshToken = await createAndSaveRefreshToken(userId); // Optionally rotate refresh token
+    await refreshTokenRecord.destroy(); // Delete used refresh token to prevent reuse
 
-    res.json({ accessToken, refreshToken: newRefreshToken }); // Send new unhashed token
+    res.json({
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+      result: 0,
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Failed to refresh token" });
+    console.error("Refresh token error:", error);
+    res.status(500).json({ error: error.message, result: 1 });
   }
 };

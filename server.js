@@ -13,8 +13,7 @@ const purchaseRequestRoutes = require("./routes/purchaseRequestsRoutes");
 const assetTransfersRoutes = require("./routes/assetTransferRoutes");
 const transactionsRoutes = require("./routes/transactionRoutes");
 const notificationsRoutes = require("./routes/notificationsRoutes");
-const subscriptionRoutes = require("./routes/subscriptionRouter");
-const userSubscriptionRoutes = require("./routes/userSubscriptionRoutes");
+
 const dotenv = require("dotenv");
 const cors = require("cors");
 const socketIo = require("socket.io");
@@ -128,8 +127,7 @@ app.use("/api/purchase-requests", purchaseRequestRoutes);
 app.use("/api/asset-transfers", assetTransfersRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/notifications", notificationsRoutes);
-app.use("/api/subscription", subscriptionRoutes);
-app.use("/api/UserSubscription", userSubscriptionRoutes);
+
 // Сохранение статистики каждый час
 setInterval(saveProductStats, 3600000);
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
