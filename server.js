@@ -219,11 +219,11 @@ app.get(
     // Можно отправить JSON с токенами
     res.cookie("accessToken", token, {
       httpOnly: true,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     }); // 1 час
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     }); // 7 дней
 
     // Перенаправление на страницу клиента

@@ -13,7 +13,7 @@ exports.generateAccessToken = (user) => {
     { id: user.id, username: user.username, email: user.email },
     process.env.JWT_SECRET,
     {
-      expiresIn: "10s", // Short expiration time
+      expiresIn: "1d", // Short expiration time
     }
   );
 };
@@ -25,7 +25,7 @@ exports.createAndSaveRefreshToken = async (userId) => {
   await RefreshTokens.create({
     token: hashedRefreshToken,
     userId: userId.toString(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 20 * 1000), // Expires in 30 days
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 20 * 1000), // Expires in 30 days
   });
 
   return refreshToken; // Return the *unhashed* refresh token
@@ -48,11 +48,11 @@ exports.register = async (req, res) => {
     const refreshToken = await this.createAndSaveRefreshToken(newUser.id);
     res.cookie("accessToken", token, {
       httpOnly: true,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     }); // 1 час
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     }); // 7 дней
 
     res.status(201).json({
@@ -80,11 +80,11 @@ exports.login = async (req, res) => {
     const refreshToken = await this.createAndSaveRefreshToken(user.id);
     res.cookie("accessToken", token, {
       httpOnly: true,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     }); // 1 час
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     }); // 7 дней
 
     res.status(201).json({
@@ -214,11 +214,11 @@ exports.refreshToken = async (req, res) => {
 
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      maxAge: 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000,
     }); // 1 час
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     }); // 7 дней
 
     res.json({
