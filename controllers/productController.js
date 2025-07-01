@@ -41,7 +41,6 @@ function isProductValid(data) {
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const { data, status } = req.body; // получаем data и status
-  console.log(id, data);
 
   try {
     // Проверяем, заполнены ли все необходимые данные
@@ -87,7 +86,7 @@ exports.deleteProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
   let { category, userId, min, max, query, page = 1, limit = 10 } = req.query;
-  console.log(req.query);
+
   page = Number(page);
   limit = Number(limit);
   try {

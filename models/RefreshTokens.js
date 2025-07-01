@@ -7,7 +7,7 @@ const RefreshTokens = sequelize.define("RefreshTokens", {
     allowNull: false,
   },
   userId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     allowNull: false,
   },
   expiresAt: {

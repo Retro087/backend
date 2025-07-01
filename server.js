@@ -22,6 +22,15 @@ const { default: axios } = require("axios");
 const { saveProductStats } = require("./controllers/productController");
 const path = require("path");
 const Messages = require("./models/Messages");
+const passport = require("passport");
+const Users = require("./models/Users");
+const {
+  generateAccessToken,
+  createAndSaveRefreshToken,
+} = require("./controllers/authController");
+const bcrypt = require("bcryptjs/dist/bcrypt");
+const cookieParser = require("cookie-parser");
+const GoogleStrategy = require("passport-google-oauth20").Strategy;
 dotenv.config();
 
 const syncDatabase = async () => {
@@ -39,7 +48,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
@@ -112,9 +121,15 @@ app.use((req, res, next) => {
 });
 
 connectDB();
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // укажите ваш фронтенд-адрес
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
+app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoriesRoutes);
@@ -127,6 +142,94 @@ app.use("/api/purchase-requests", purchaseRequestRoutes);
 app.use("/api/asset-transfers", assetTransfersRoutes);
 app.use("/api/transactions", transactionsRoutes);
 app.use("/api/notifications", notificationsRoutes);
+
+app.use(
+  require("express-session")({
+    secret: "your_secret",
+    resave: true,
+    saveUninitialized: true,
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Настройка стратегии
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.Client_id,
+      clientSecret: process.env.Client_secret,
+      callbackURL: "http://localhost:5000/auth/google/callback",
+    },
+    async function (accessToken, refreshToken, profile, done) {
+      try {
+        // Попытка найти пользователя по profile.id или email
+        let user = await Users.findOne({ where: { google_id: profile.id } });
+
+        if (!user) {
+          // Если пользователя нет — создаем нового
+          const hashedPassword = await bcrypt.hash(profile.displayName, 10);
+
+          // Можно сгенерировать случайный пароль или оставить поле пустым, если оно не обязательно
+          user = await Users.create({
+            username: profile.displayName || profile.emails[0].value, // например, имя из профиля
+            email: profile.emails[0].value,
+            password: hashedPassword, // если в вашей модели есть пароль, иначе оставьте пустым
+            google_id: profile.id, // сохраняем id для последующих входов
+            photo: profile.photos ? profile.photos[0].value : "",
+            city: "", // по желанию
+            phone: "", // по желанию
+          });
+        }
+        const token = generateAccessToken({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        });
+        const refreshToken = await createAndSaveRefreshToken(user.id);
+        // Возвращаем пользователя
+        return done(null, { user, token, refreshToken });
+      } catch (err) {
+        return done(err, null);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Маршрут для начала авторизации
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Callback URL после авторизации
+app.get(
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    const { user, token, refreshToken } = req.user; // или из аргумента, если так передали
+
+    // Можно отправить JSON с токенами
+    res.cookie("accessToken", token, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 1000,
+    }); // 1 час
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    }); // 7 дней
+
+    // Перенаправление на страницу клиента
+    res.redirect("http://localhost:3000/");
+  }
+);
 
 // Сохранение статистики каждый час
 setInterval(saveProductStats, 3600000);

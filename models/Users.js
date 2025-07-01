@@ -9,6 +9,11 @@ const Users = sequelize.define(
       allowNull: false,
       unique: true,
     },
+    google_id: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      unique: true,
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,

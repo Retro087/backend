@@ -31,7 +31,7 @@ exports.addCategory = async (req, res) => {
 exports.deleteCategory = async (req, res) => {
   try {
     const id = req.params.id;
-    console.log(id);
+
     if (!id) {
       return res.status(404).json({ message: "Вы должны указать id" });
     }
@@ -55,7 +55,7 @@ exports.updateCategory = async (req, res) => {
   try {
     const id = req.body.id;
     const updateData = req.body.updateData;
-    console.log(id, updateData);
+
     if (!id || !updateData) {
       return res
         .status(404)
@@ -67,7 +67,7 @@ exports.updateCategory = async (req, res) => {
         where: { id: id },
       }
     );
-    console.log(updatedCategory);
+
     if (!updatedCategory) {
       return res.status(404).json({ message: "Нет категории" });
     }
