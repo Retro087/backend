@@ -109,6 +109,12 @@ const Products = sequelize.define(
       // Изменено имя поля для соответствия snake_case
       type: DataTypes.STRING,
     },
+    mrr: {
+      type: DataTypes.DECIMAL(15, 2),
+    },
+    last_3_month: {
+      type: DataTypes.DECIMAL(15, 2),
+    },
     location_city: {
       // Изменено имя поля для соответствия snake_case
       type: DataTypes.STRING,
