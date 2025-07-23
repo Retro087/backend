@@ -159,6 +159,18 @@ const Products = sequelize.define(
       type: DataTypes.DECIMAL(15, 2),
       allowNull: true,
     },
+    rentability: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    expenses_last_12_months: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    },
+    monthly_expenses: {
+      type: DataTypes.DECIMAL(15, 2),
+      allowNull: true,
+    },
 
     management_time_weekly: {
       type: DataTypes.INTEGER, // В часах

@@ -41,7 +41,7 @@ function isProductValid(data) {
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   const { data, status } = req.body; // получаем data и status
-
+  console.log(data);
   try {
     // Проверяем, заполнены ли все необходимые данные
     const isValid = isProductValid(data);
