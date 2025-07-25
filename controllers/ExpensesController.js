@@ -2,30 +2,48 @@ const Expenses = require("../models/Expenses");
 const Products = require("../models/Products");
 
 // 1. Создание расхода (POST /expenses)
-exports.createExpense = async (req, res) => {
-  // Валидация запроса (подробности ниже)
-
-  const { businessId, amount, title } = req.body;
+exports.createExpenses = async (req, res) => {
+  // Предполагается, что в теле запроса приходит массив expenses и идентификатор бизнесa
+  const { expenses } = req.body;
+  const businessId = req.params.id;
+  console.log(expenses, businessId);
+  if (!Array.isArray(expenses)) {
+    return res.status(400).json({ message: "expenses должно быть массивом" });
+  }
 
   try {
     // Проверка существования бизнеса
     const business = await Products.findByPk(businessId);
+
     if (!business) {
       return res.status(404).json({ message: "Бизнес не найден" });
     }
+    console.log(business);
+    const createdExpenses = [];
 
-    const newExpense = await Expenses.create({
-      businessId,
+    for (const expense of expenses) {
+      const { title, monthAvg } = expense;
 
-      amount,
-      title,
+      // Можно добавить дополнительные проверки, например, наличие title и monthAvg
+      if (!title || monthAvg === undefined || monthAvg === null) {
+        continue; // пропускаем некорректные элементы
+      }
+      console.log(title);
+      const newExpense = await Expenses.create({
+        businessId,
+        title,
+        amount: monthAvg,
+      });
+
+      createdExpenses.push(newExpense);
+    }
+
+    res.status(201).json({
+      message: "Расходы успешно созданы",
+      expenses: createdExpenses,
     });
-
-    res
-      .status(201)
-      .json({ message: "Расход успешно создан", expense: newExpense });
   } catch (error) {
-    console.error("Ошибка при создании расхода:", error);
+    console.error("Ошибка при создании расходов:", error);
     res.status(500).json({ message: "Ошибка сервера" });
   }
 };
@@ -34,12 +52,10 @@ exports.createExpense = async (req, res) => {
 exports.getAllExpenses = async (req, res) => {
   try {
     const expenses = await Expenses.findAll({
-      include: [
-        { model: Business, as: "business" }, // Включаем связанные модели (бизнес)
-        { model: ExpenseCategory, as: "category" }, // Включаем связанные модели (категория)
-      ],
-      order: [["date", "DESC"]], // Сортировка по дате убыванию
+      where: { businessId: req.params.id },
+      // Сортировка по дате убыванию
     });
+
     res.status(200).json(expenses);
   } catch (error) {
     console.error("Ошибка при получении расходов:", error);
