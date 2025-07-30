@@ -1,19 +1,20 @@
 const Expenses = require("../models/Expenses");
 const Products = require("../models/Products");
+const SocialMedia = require("../models/SocialMedia");
 
 // 1. Создание расхода (POST /expenses/:id)
-exports.createExpense = async (req, res) => {
+exports.createSocialMedia = async (req, res) => {
   // Предполагается, что в теле запроса приходит объект expense
-  const { expense } = req.body;
+  const { value } = req.body;
   const businessId = req.params.id;
 
-  if (!expense || typeof expense !== "object") {
+  if (!value || typeof value !== "object") {
     return res
       .status(400)
-      .json({ message: "Должен быть передан объект expense" });
+      .json({ message: "Должен быть передан объект value" });
   }
 
-  const { title, amount } = expense;
+  const { platforma, quantity } = value;
 
   // if (!title || amount === undefined || amount === null) {
   //   return res.status(400).json({ message: "Поля title и amount обязательны" });
@@ -27,53 +28,53 @@ exports.createExpense = async (req, res) => {
       return res.status(404).json({ message: "Бизнес не найден" });
     }
 
-    const newExpense = await Expenses.create({
+    const newvalue = await SocialMedia.create({
       businessId,
-      title,
-      amount,
+      platforma,
+      quantity,
     });
 
     res.status(201).json({
       message: "Расход успешно создан",
-      expense: newExpense,
+      value: newvalue,
     });
   } catch (error) {
     console.error("Ошибка при создании расхода:", error);
     res.status(500).json({ message: "Ошибка сервера" });
   }
 };
-// 2. Получение всех расходов (GET /expenses)
-exports.getAllExpenses = async (req, res) => {
+// 2. Получение всех расходов (GET /values)
+exports.getAllSocials = async (req, res) => {
   try {
-    const expenses = await Expenses.findAll({
+    const socials = await SocialMedia.findAll({
       where: { businessId: req.params.id },
       // Сортировка по дате убыванию
     });
 
-    res.status(200).json(expenses);
+    res.status(200).json(socials);
   } catch (error) {
-    console.error("Ошибка при получении расходов:", error);
+    console.error("Ошибка при получении соц.сетей:", error);
     res.status(500).json({ message: "Ошибка сервера" });
   }
 };
 
 // 3. Получение расхода по ID (GET /expenses/:id)
-exports.getExpenseById = async (req, res) => {
+exports.getSocialById = async (req, res) => {
   const { id } = req.params; // Получаем ID из параметров запроса
 
   try {
-    const expense = await Expenses.findByPk(id, {
+    const social = await SocialMedia.findByPk(id, {
       include: [
         { model: Business, as: "business" },
         { model: ExpenseCategory, as: "category" },
       ],
     });
 
-    if (!expense) {
+    if (!social) {
       return res.status(404).json({ message: "Расход не найден" });
     }
 
-    res.status(200).json(expense);
+    res.status(200).json(social);
   } catch (error) {
     console.error("Ошибка при получении расхода по ID:", error);
     res.status(500).json({ message: "Ошибка сервера" });
@@ -81,39 +82,39 @@ exports.getExpenseById = async (req, res) => {
 };
 
 // 4. Обновление расхода (PUT /expenses/:id)
-exports.updateExpense = async (req, res) => {
-  const expenseData = req.body.expense; // предполагается, что весь объект expense передается
-  console.log(expenseData);
+exports.updateSocial = async (req, res) => {
+  const socialData = req.body.social; // предполагается, что весь объект expense передается
+
   try {
     // Проверка существования расхода
-    const expense = await Expenses.findByPk(expenseData.id);
-    if (!expense) {
+    const social = await SocialMedia.findByPk(socialData.id);
+    if (!social) {
       return res.status(404).json({ message: "Расход не найден" });
     }
 
-    // Обновляем все поля, переданные в expenseData
-    Object.assign(expense, expenseData);
+    // Обновляем все поля, переданные в socialData
+    Object.assign(social, socialData);
 
-    await expense.save(); // Сохраняем изменения
+    await social.save(); // Сохраняем изменения
 
-    res.status(200).json({ message: "Расход успешно обновлен", expense });
+    res.status(200).json({ message: "Расход успешно обновлен", social });
   } catch (error) {
     console.error("Ошибка при обновлении расхода:", error);
     res.status(500).json({ message: "Ошибка сервера" });
   }
 };
-// 5. Удаление расхода (DELETE /expenses/:id)
-exports.deleteExpense = async (req, res) => {
+// 5. Удаление расхода (DELETE /socials/:id)
+exports.deleteSocial = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const expense = await Expenses.findByPk(id);
+    const social = await SocialMedia.findByPk(id);
 
-    if (!expense) {
+    if (!social) {
       return res.status(404).json({ message: "Расход не найден" });
     }
 
-    await expense.destroy(); // Удаляем запись
+    await social.destroy(); // Удаляем запись
 
     res.status(200).json({ message: "Расход успешно удален", id });
   } catch (error) {

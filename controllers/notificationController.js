@@ -35,12 +35,10 @@ exports.markNotificationAsRead = async (req, res) => {
     notification.isRead = true;
     await notification.save();
 
-    res
-      .status(200)
-      .json({
-        message: "Уведомление отмечено как прочитанное",
-        id: notification.id,
-      });
+    res.status(200).json({
+      message: "Уведомление отмечено как прочитанное",
+      id: notification.id,
+    });
   } catch (error) {
     console.error(error);
     res
