@@ -71,6 +71,32 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+exports.updateProductStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // получаем только статус
+
+  try {
+    // Проверяем, существует ли продукт
+    const product = await Product.findOne({ where: { id } });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Обновляем только статус
+    await Product.update(
+      { status }, // обновляем статус
+      { where: { id } }
+    );
+
+    // Получаем обновленный продукт
+    const updatedProduct = await Product.findOne({ where: { id } });
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.deleteProduct = async (req, res) => {
   const { id } = req.params;
 

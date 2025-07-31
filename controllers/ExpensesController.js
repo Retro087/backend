@@ -6,7 +6,7 @@ exports.createExpense = async (req, res) => {
   // Предполагается, что в теле запроса приходит объект expense
   const { expense } = req.body;
   const businessId = req.params.id;
-
+  console.log(expense, businessId);
   if (!expense || typeof expense !== "object") {
     return res
       .status(400)

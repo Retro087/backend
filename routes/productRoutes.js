@@ -10,6 +10,7 @@ const {
   addView,
   getStat,
   getMyProducts,
+  updateProductStatus,
 } = require("../controllers/productController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
@@ -24,5 +25,6 @@ router.get("/drafts", getDrafts);
 router.get("/:id", getArticle);
 router.patch("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
+router.patch("/:id", updateProductStatus);
 
 module.exports = router;

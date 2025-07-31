@@ -5,16 +5,16 @@ const SocialMedia = require("../models/SocialMedia");
 // 1. Создание расхода (POST /expenses/:id)
 exports.createSocialMedia = async (req, res) => {
   // Предполагается, что в теле запроса приходит объект expense
-  const { value } = req.body;
+  const { social } = req.body;
   const businessId = req.params.id;
-
-  if (!value || typeof value !== "object") {
+  console.log(social, businessId);
+  if (!social || typeof social !== "object") {
     return res
       .status(400)
-      .json({ message: "Должен быть передан объект value" });
+      .json({ message: "Должен быть передан объект social" });
   }
 
-  const { platforma, quantity } = value;
+  const { platform, followers } = social;
 
   // if (!title || amount === undefined || amount === null) {
   //   return res.status(400).json({ message: "Поля title и amount обязательны" });
@@ -28,15 +28,15 @@ exports.createSocialMedia = async (req, res) => {
       return res.status(404).json({ message: "Бизнес не найден" });
     }
 
-    const newvalue = await SocialMedia.create({
+    const newsocial = await SocialMedia.create({
       businessId,
-      platforma,
-      quantity,
+      platform,
+      followers,
     });
 
     res.status(201).json({
       message: "Расход успешно создан",
-      value: newvalue,
+      social: newsocial,
     });
   } catch (error) {
     console.error("Ошибка при создании расхода:", error);
@@ -84,7 +84,7 @@ exports.getSocialById = async (req, res) => {
 // 4. Обновление расхода (PUT /expenses/:id)
 exports.updateSocial = async (req, res) => {
   const socialData = req.body.social; // предполагается, что весь объект expense передается
-
+  console.log(socialData);
   try {
     // Проверка существования расхода
     const social = await SocialMedia.findByPk(socialData.id);

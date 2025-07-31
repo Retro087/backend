@@ -6,11 +6,11 @@ const SocialMedia = sequelize.define("SocialMedia", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  quantity: {
+  followers: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  platforma: {
+  platform: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
