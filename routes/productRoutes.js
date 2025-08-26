@@ -25,6 +25,6 @@ router.get("/drafts", getDrafts);
 router.get("/:id", getArticle);
 router.patch("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
-router.patch("/:id", updateProductStatus);
+router.patch("/:id/status", updateProductStatus);
 
 module.exports = router;

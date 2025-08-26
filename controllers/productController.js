@@ -74,7 +74,7 @@ exports.updateProduct = async (req, res) => {
 exports.updateProductStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body; // получаем только статус
-
+  console.log(id, status);
   try {
     // Проверяем, существует ли продукт
     const product = await Product.findOne({ where: { id } });
@@ -112,7 +112,7 @@ exports.deleteProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
   let { category, userId, min, max, query, page = 1, limit = 10 } = req.query;
-
+  console.log(req.query);
   page = Number(page);
   limit = Number(limit);
   try {
@@ -155,7 +155,7 @@ exports.getProducts = async (req, res) => {
         isFavorite: favoriteIds.includes(product.id),
       }));
     }
-
+    console.log(totalProducts);
     return res.json({
       products,
       totalProducts,

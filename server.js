@@ -15,6 +15,7 @@ const transactionsRoutes = require("./routes/transactionRoutes");
 const notificationsRoutes = require("./routes/notificationsRoutes");
 const expensesRoutes = require("./routes/expensesRoutes");
 const socialRoutes = require("./routes/socialRoutes");
+const assetsForSale = require("./routes/assetsForSaleRoutes");
 
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -146,6 +147,7 @@ app.use("/api/transactions", transactionsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/social", socialRoutes);
+app.use("/api/assets-for-sale", assetsForSale);
 
 app.use(
   require("express-session")({
