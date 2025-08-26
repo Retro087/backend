@@ -33,6 +33,7 @@ const {
 const bcrypt = require("bcryptjs/dist/bcrypt");
 const cookieParser = require("cookie-parser");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const YandexStategy = require('passport-yandex').Strategy;
 dotenv.config();
 
 const syncDatabase = async () => {
@@ -241,12 +242,43 @@ passport.use(
     clientSecret: process.env.Client_secret,
     callbackURL: "http://localhost:5000/auth/yandex/callback",
   },
-  function(accessToken, refreshToken, profile, done) {
-    Users.findOrCreate({ yandex_id: profile.id }, function (err, user) {
-      return done(err, user);
-    });
+  async function(accessToken, refreshToken, profile, done) {
+    try{
+      let user = await Users.findOne({ where: {yandex_id: profile_id}});
+
+      if (!user) {
+        const hashedPassword = await bcrypt.hash(profile.displayName, 10);
+
+        user = await Users.create({
+          username: profile.displayName || profile.emails[0].value, // например, имя из профиля
+          email: profile.emails[0].value,
+          password: hashedPassword, // если в вашей модели есть пароль, иначе оставьте пустым
+          yandex_id: profile.id, // сохраняем id для последующих входов
+          photo: profile.photos ? profile.photos[0].value : "",
+          city: "", // по желанию
+          phone: "", // по желанию
+        });
+      }
+      const token = generateAccessToken({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      });
+      const refreshToken = await createAndSaveRefreshToken(user.id);
+
+      return done(null, {user, token, refreshToken});
+    } catch (err) {
+      return done(err, null);
+    }
   }
 ));
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
 
 app.get(
   "auth/yandex",
@@ -262,7 +294,20 @@ app.get(
   passport.authenticate('yandex', { failureRedirect: '/login'}),
   function(req, res) {
     // успешная аутентификация, возврат на главную
-    res.redirect('/');
+    const { user, token, refreshToken } = req.user; // или из аргумента, если так передали
+
+    // Можно отправить JSON с токенами
+    res.cookie("accessToken", token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    }); // 1 час
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    }); // 7 дней
+
+    // Перенаправление на страницу клиента
+    res.redirect("http://localhost:3000/");
   }
 )
 
