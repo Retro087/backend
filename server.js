@@ -159,7 +159,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Настройка стратегии
+// Настройка стратегии Google
 passport.use(
   new GoogleStrategy(
     {
@@ -236,6 +236,37 @@ app.get(
     res.redirect("http://localhost:3000/");
   }
 );
+
+passport.use(
+  new YandexStategy({
+    clientID: process.env.Client_id,
+    clientSecret: process.env.Client_secret,
+    callbackURL: "http://localhost:5000/auth/yandex/callback",
+  },
+  function(accessToken, refreshToken, profile, done) {
+    Users.findOrCreate({ yandex_id: profile.id }, function (err, user) {
+      return done(err, user);
+    });
+  }
+));
+
+app.get(
+  "auth/yandex",
+  passport.authenticate('yandex'),
+  function(req, res){
+    //запрос скидывает пользователя на страницу авторизации яндекса
+    //поэтому тело функции не отработает
+  }
+)
+
+app.get(
+  "/auth/yandex/callback",
+  passport.authenticate('yandex', { failureRedirect: '/login'}),
+  function(req, res) {
+    // успешная аутентификация, возврат на главную
+    res.redirect('/');
+  }
+)
 
 // Сохранение статистики каждый час
 setInterval(saveProductStats, 3600000);

@@ -14,6 +14,11 @@ const Users = sequelize.define(
       allowNull: true,
       unique: true,
     },
+    yandex_id: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      unique: true,
+    },
     email: {
       type: DataTypes.STRING,
       allowNull: false,
